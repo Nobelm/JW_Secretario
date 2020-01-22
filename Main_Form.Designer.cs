@@ -31,6 +31,8 @@
             this.components = new System.ComponentModel.Container();
             System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea1 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
             System.Windows.Forms.DataVisualization.Charting.Series series1 = new System.Windows.Forms.DataVisualization.Charting.Series();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
             this.Main_Data_gridview = new System.Windows.Forms.DataGridView();
             this.Refresh_timer = new System.Windows.Forms.Timer(this.components);
             this.btn_Guardar = new System.Windows.Forms.Button();
@@ -108,7 +110,7 @@
             // 
             chartArea1.Name = "ChartArea1";
             this.Chart_Publicaciones.ChartAreas.Add(chartArea1);
-            this.Chart_Publicaciones.Location = new System.Drawing.Point(765, 586);
+            this.Chart_Publicaciones.Location = new System.Drawing.Point(727, 455);
             this.Chart_Publicaciones.Name = "Chart_Publicaciones";
             series1.ChartArea = "ChartArea1";
             series1.Name = "Series1";
@@ -204,6 +206,15 @@
             // Totals_Grid_View
             // 
             this.Totals_Grid_View.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle1.BackColor = System.Drawing.SystemColors.Window;
+            dataGridViewCellStyle1.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle1.ForeColor = System.Drawing.SystemColors.ControlText;
+            dataGridViewCellStyle1.NullValue = null;
+            dataGridViewCellStyle1.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle1.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
+            this.Totals_Grid_View.DefaultCellStyle = dataGridViewCellStyle1;
             this.Totals_Grid_View.Location = new System.Drawing.Point(12, 700);
             this.Totals_Grid_View.Name = "Totals_Grid_View";
             this.Totals_Grid_View.ReadOnly = true;
@@ -251,6 +262,15 @@
             // Prom_Grid_View
             // 
             this.Prom_Grid_View.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle2.BackColor = System.Drawing.SystemColors.Window;
+            dataGridViewCellStyle2.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle2.ForeColor = System.Drawing.SystemColors.ControlText;
+            dataGridViewCellStyle2.NullValue = "0";
+            dataGridViewCellStyle2.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle2.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle2.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
+            this.Prom_Grid_View.DefaultCellStyle = dataGridViewCellStyle2;
             this.Prom_Grid_View.Location = new System.Drawing.Point(12, 586);
             this.Prom_Grid_View.Name = "Prom_Grid_View";
             this.Prom_Grid_View.ReadOnly = true;

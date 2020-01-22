@@ -15,6 +15,7 @@ using System.Runtime.CompilerServices;
 using System.IO;
 using System.Collections;
 using System.Diagnostics;
+using System.Windows.Forms.DataVisualization.Charting;
 
 namespace JW_Secretario
 {
@@ -25,7 +26,8 @@ namespace JW_Secretario
         private static Excel.Sheets ExcelSheets;
         //private static Excel.Worksheet Main_Sheet;
         //private static Excel.Worksheet[] Month_Sheet = new Excel.Worksheet[12];
-        private static List<Excel.Worksheet> Month_Sheet_List = new List<Excel.Worksheet>();
+        public static List<Excel.Worksheet> Sheet_List = new List<Excel.Worksheet>();
+        public static List<string> sheet_names = new List<string>();
         public static int Initial_Year = 19;
         public static string[] Months = new string[] { "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre" };
         public static List<string> Filter_Values = new List<string> { "Todos", "Publicador"};
@@ -35,9 +37,7 @@ namespace JW_Secretario
         Thread Excel_Thread;
         Thread Save_Excel_Thread;
         public static string File_Path = Application.StartupPath + "\\\\DataBase.xlsx";
-        public static List<string> sheet_names = new List<string>();
         public static List<Publicador> All_Pub_List = new List<Publicador>();
-        public static BindingList<Publicador> Show_Pub_Data_List = new BindingList<Publicador>();
         public static bool pending_grid_refresh = false;
         public static bool pending_filters_refresh = false;
         public static int Selected_Month = 0;
@@ -47,15 +47,25 @@ namespace JW_Secretario
         public static Publicador_Total Total_Aux = new Publicador_Total();
         public static Publicador_Total Total_Reg = new Publicador_Total();
         public static Publicador_Total Grand_Total = new Publicador_Total();
-        public static BindingList<Publicador_Total> List_Totals = new BindingList<Publicador_Total>();
+        public static Publicador_Prom Prom_Pub = new Publicador_Prom();
+        public static Publicador_Prom Prom_Aux = new Publicador_Prom();
+        public static Publicador_Prom Prom_Reg = new Publicador_Prom();
+        public static Publicador_Prom Prom_Total = new Publicador_Prom();
+        public static BindingList<Publicador> Show_Pub_Data_List = new BindingList<Publicador>();
+        public static BindingList<Publicador> Pub_History_List = new BindingList<Publicador>();
+        public static BindingList<Publicador_Prom> Prom_Totals_List = new BindingList<Publicador_Prom>();
+        public static BindingList<Publicador_Total> List_Totals_List = new BindingList<Publicador_Total>();
 
         public enum Categoria
         {
             Null,
             Publicador,
             Auxiliar,
-            Regular
+            Regular, 
+            Total
         }
+
+        /***/
         public Main_Form()
         {
             InitializeComponent();
@@ -67,10 +77,14 @@ namespace JW_Secretario
             Save_Excel_Thread = new Thread(() => Save_Excel_Handler());
             Excel_Thread.Start();
             Refresh_timer.Start();
-            List_Totals.Add(Total_Pub);
-            List_Totals.Add(Total_Aux);
-            List_Totals.Add(Total_Reg);
-            List_Totals.Add(Grand_Total);
+            List_Totals_List.Add(Total_Pub);
+            List_Totals_List.Add(Total_Aux);
+            List_Totals_List.Add(Total_Reg);
+            List_Totals_List.Add(Grand_Total);
+            Prom_Totals_List.Add(Prom_Pub);
+            Prom_Totals_List.Add(Prom_Aux);
+            Prom_Totals_List.Add(Prom_Reg);
+            Prom_Totals_List.Add(Prom_Total);
         }
 
         private void Main_Form_FormClosed(object sender, FormClosedEventArgs e)
@@ -81,9 +95,9 @@ namespace JW_Secretario
                 ExcelBooks.Close(0);
                 ExcelApp.Quit();
             }
-            for (int i = 0; i < Month_Sheet_List.Count; i++)
+            for (int i = 0; i < Sheet_List.Count; i++)
             {
-                Marshal.ReleaseComObject(Month_Sheet_List[i]);
+                Marshal.ReleaseComObject(Sheet_List[i]);
             }
             Marshal.ReleaseComObject(ExcelBooks);
             Marshal.ReleaseComObject(ExcelApp);
@@ -104,7 +118,7 @@ namespace JW_Secretario
             ExcelSheets = ExcelBooks.Worksheets;
             foreach (Excel.Worksheet worksheet in ExcelBooks.Worksheets)
             {
-                Month_Sheet_List.Add(worksheet);
+                Sheet_List.Add(worksheet);
                 sheet_names.Add(worksheet.Name);
             }
             Read_Data_Worksheet();
@@ -114,7 +128,7 @@ namespace JW_Secretario
         public void Read_Data_Worksheet()
         {
             All_Pub_List.Clear();
-            Excel_Range = Month_Sheet_List[Selected_Month].get_Range("A1", "H200");
+            Excel_Range = Sheet_List[Selected_Month].get_Range("A1", "H200");
             cellValue_1 = (object[,])Excel_Range.get_Value();
             int i = 2;
             Publicador aux_pub;
@@ -206,9 +220,15 @@ namespace JW_Secretario
                         Set_Color_Result_DataGrid(cell);
                     }
                 }
-                Totals_Grid_View.DataSource = List_Totals;
+                Prom_Grid_View.DataSource = Prom_Totals_List;
+                Prom_Grid_View.Refresh();
+                Prom_Grid_View.AutoResizeColumns(DataGridViewAutoSizeColumnsMode.DisplayedCells);
+                Totals_Grid_View.DataSource = List_Totals_List;
                 Totals_Grid_View.Refresh();
                 Totals_Grid_View.AutoResizeColumns(DataGridViewAutoSizeColumnsMode.DisplayedCells);
+                Pub_Grid_View.DataSource = Pub_History_List;
+                Pub_Grid_View.Refresh();
+                Pub_Grid_View.AutoResizeColumns(DataGridViewAutoSizeColumnsMode.DisplayedCells);
                 pending_grid_refresh = false;
             }
         }
@@ -223,14 +243,14 @@ namespace JW_Secretario
         {
             for (int i = 1; i <= All_Pub_List.Count; i++)
             {
-                Month_Sheet_List[0].Cells[i + 1, 1] = All_Pub_List[i - 1].Nombre;
-                Month_Sheet_List[0].Cells[i + 1, 2] = All_Pub_List[i - 1].Publicaciones;
-                Month_Sheet_List[0].Cells[i + 1, 3] = All_Pub_List[i - 1].Videos;
-                Month_Sheet_List[0].Cells[i + 1, 4] = All_Pub_List[i - 1].Horas;
-                Month_Sheet_List[0].Cells[i + 1, 5] = All_Pub_List[i - 1].Revisitas;
-                Month_Sheet_List[0].Cells[i + 1, 6] = All_Pub_List[i - 1].Estudios;
-                Month_Sheet_List[0].Cells[i + 1, 7] = All_Pub_List[i - 1].Grupo;
-                Month_Sheet_List[0].Cells[i + 1, 8] = All_Pub_List[i - 1].Categoria.ToString();
+                Sheet_List[0].Cells[i + 1, 1] = All_Pub_List[i - 1].Nombre;
+                Sheet_List[0].Cells[i + 1, 2] = All_Pub_List[i - 1].Publicaciones;
+                Sheet_List[0].Cells[i + 1, 3] = All_Pub_List[i - 1].Videos;
+                Sheet_List[0].Cells[i + 1, 4] = All_Pub_List[i - 1].Horas;
+                Sheet_List[0].Cells[i + 1, 5] = All_Pub_List[i - 1].Revisitas;
+                Sheet_List[0].Cells[i + 1, 6] = All_Pub_List[i - 1].Estudios;
+                Sheet_List[0].Cells[i + 1, 7] = All_Pub_List[i - 1].Grupo;
+                Sheet_List[0].Cells[i + 1, 8] = All_Pub_List[i - 1].Categoria.ToString();
             }
             ExcelBooks.Save();
         }
@@ -244,7 +264,7 @@ namespace JW_Secretario
 
         private void Btn_nuevo_Click(object sender, EventArgs e)
         {
-            Excel.Worksheet sheet = Month_Sheet_List[Month_Sheet_List.Count-1];
+            Excel.Worksheet sheet = Sheet_List[Sheet_List.Count-1];
             sheet.Copy(Type.Missing, sheet);
             var copySheetIndex = sheet.Index + 1;
 
@@ -268,7 +288,7 @@ namespace JW_Secretario
 
             copySheet.Name = Months[aux_mes] + " " + Initial_Year.ToString();
             ExcelBooks.Save();
-            Month_Sheet_List.Add(copySheet);
+            Sheet_List.Add(copySheet);
             sheet_names.Add(copySheet.Name);
             Read_Data_Worksheet();
             pending_grid_refresh = true;
@@ -505,7 +525,11 @@ namespace JW_Secretario
             Total_Aux.Clear();
             Total_Reg.Clear();
             Grand_Total.Clear();
-            for(int i=0; i< Show_Pub_Data_List.Count; i++)
+            Prom_Pub.Clear();
+            Prom_Aux.Clear();
+            Prom_Reg.Clear();
+            Prom_Total.Clear();
+            for (int i=0; i< Show_Pub_Data_List.Count; i++)
             {
                 Publicador aux_pub = Show_Pub_Data_List[i];
                 switch (Show_Pub_Data_List[i].Categoria)
@@ -549,18 +573,18 @@ namespace JW_Secretario
             Total_Aux.Nombre = "Auxiliar";
             Total_Reg.Nombre = "Regular";
             Grand_Total.Nombre = "Totales";
+            Prom_Pub.Nombre = "Publicador";
+            Prom_Aux.Nombre = "Auxiliar";
+            Prom_Reg.Nombre = "Regular";
+            Prom_Total.Nombre = "Totales";
             Grand_Total.Publicaciones = Total_Pub.Publicaciones + Total_Aux.Publicaciones + Total_Reg.Publicaciones;
             Grand_Total.Videos = Total_Pub.Videos + Total_Aux.Videos + Total_Reg.Videos;
             Grand_Total.Horas = Total_Pub.Horas + Total_Aux.Horas + Total_Reg.Horas;
             Grand_Total.Revisitas = Total_Pub.Revisitas + Total_Aux.Revisitas + Total_Reg.Revisitas;
             Grand_Total.Estudios = Total_Pub.Estudios + Total_Aux.Estudios + Total_Reg.Estudios;
             Grand_Total.Informan = Total_Pub.Informan + Total_Aux.Informan + Total_Reg.Informan;
-
-            if (Chk_Promedios.Checked)
-            {
-                Set_Prom_Totals();
-            }
             await Task.Delay(50);
+            Set_Prom_Totals();
             pending_grid_refresh = true;
         }
 
@@ -568,35 +592,46 @@ namespace JW_Secretario
         {
             if (Total_Pub.Informan > 0)
             {
-                Total_Pub.Videos /= Total_Pub.Informan;
-                Total_Pub.Publicaciones /= Total_Pub.Informan;
-                Total_Pub.Horas /= Total_Pub.Informan;
-                Total_Pub.Revisitas /= Total_Pub.Informan;
-                Total_Pub.Estudios /= Total_Pub.Informan;
+                int Informan = Total_Pub.Informan;
+                Prom_Pub.Informan = Informan;
+                Prom_Pub.Publicaciones = Total_Pub.Prom(1);
+                Prom_Pub.Videos = Total_Pub.Prom(2);
+                Prom_Pub.Horas = Total_Pub.Prom(3);
+                Prom_Pub.Revisitas = Total_Pub.Prom(4);
+                Prom_Pub.Estudios = Total_Pub.Prom(5);
+                Prom_Pub.Categoria = Categoria.Publicador;
             }
             if (Total_Aux.Informan > 0)
             {
-                Total_Aux.Videos /= Total_Aux.Informan;
-                Total_Aux.Publicaciones /= Total_Aux.Informan;
-                Total_Aux.Horas /= Total_Aux.Informan;
-                Total_Aux.Revisitas /= Total_Aux.Informan;
-                Total_Aux.Estudios /= Total_Aux.Informan;
+                int Informan = Total_Aux.Informan;
+                Prom_Aux.Informan = Informan;
+                Prom_Aux.Publicaciones = Total_Aux.Prom(1);
+                Prom_Aux.Videos = Total_Aux.Prom(2);
+                Prom_Aux.Horas = Total_Aux.Prom(3);
+                Prom_Aux.Revisitas = Total_Aux.Prom(4);
+                Prom_Aux.Estudios = Total_Aux.Prom(5);
+                Prom_Aux.Categoria = Categoria.Auxiliar;
             }
             if (Total_Reg.Informan > 0)
             {
-                Total_Reg.Videos /= Total_Reg.Informan;
-                Total_Reg.Publicaciones /= Total_Reg.Informan;
-                Total_Reg.Horas /= Total_Reg.Informan;
-                Total_Reg.Revisitas /= Total_Reg.Informan;
-                Total_Reg.Estudios /= Total_Reg.Informan;
+                int Informan = Total_Reg.Informan;
+                Prom_Reg.Informan = Informan;
+                Prom_Reg.Publicaciones = Total_Reg.Prom(1);
+                Prom_Reg.Videos = Total_Reg.Prom(2);
+                Prom_Reg.Horas = Total_Reg.Prom(3);
+                Prom_Reg.Revisitas = Total_Reg.Prom(4);
+                Prom_Reg.Estudios = Total_Reg.Prom(5);
+                Prom_Reg.Categoria = Categoria.Regular;
             }
             if (Grand_Total.Informan > 0)
             {
-                Grand_Total.Videos /= Grand_Total.Informan;
-                Grand_Total.Publicaciones /= Grand_Total.Informan;
-                Grand_Total.Horas /= Grand_Total.Informan;
-                Grand_Total.Revisitas /= Grand_Total.Informan;
-                Grand_Total.Estudios /= Grand_Total.Informan;
+                int Informan = Grand_Total.Informan;
+                Prom_Total.Informan = Informan;
+                Prom_Total.Publicaciones = Grand_Total.Prom(1);
+                Prom_Total.Videos = Grand_Total.Prom(2);
+                Prom_Total.Horas = Grand_Total.Prom(3);
+                Prom_Total.Revisitas = Grand_Total.Prom(4);
+                Prom_Total.Estudios = Grand_Total.Prom(5);
             }
         }
 
@@ -618,10 +653,101 @@ namespace JW_Secretario
             DataGridViewCell cell = Main_Data_gridview.CurrentCell;
             if (cell != null)
             {
-                string name_selected = Main_Data_gridview[0, cell.RowIndex].Value.ToString();
-                Lbl_Selected_Pub.Text = name_selected;
+                if (cell.ColumnIndex == 0)
+                {
+                    string name_selected = Main_Data_gridview[0, cell.RowIndex].Value.ToString();
+                    Lbl_Selected_Pub.Text = name_selected;
+                    Get_History_Data(name_selected);
+                }
 
             }
+        }
+
+        public async void Get_History_Data(string Name)
+        {
+            await Task.Delay(50);
+            Pub_History_List.Clear();
+            for (int it = 0; it < Sheet_List.Count; it++)
+            {
+                Excel_Range = Sheet_List[it].get_Range("A1", "H200");
+                cellValue_1 = (object[,])Excel_Range.get_Value();
+                int i = 2;
+                Publicador aux_pub;
+                while (i < 200)
+                {
+                    if (cellValue_1[i, 1] != null)
+                    {
+                        if (cellValue_1[i, 1].ToString().Equals(Name))
+                        {
+                            aux_pub = new Publicador();
+                            aux_pub.Nombre = Sheet_List[it].Name;
+                            aux_pub.Publicaciones = Convert.ToInt16(cellValue_1[i, 2].ToString());
+                            aux_pub.Videos = Convert.ToInt16(cellValue_1[i, 3].ToString());
+                            aux_pub.Horas = Convert.ToInt16(cellValue_1[i, 4].ToString());
+                            aux_pub.Revisitas = Convert.ToInt16(cellValue_1[i, 5].ToString());
+                            aux_pub.Estudios = Convert.ToInt16(cellValue_1[i, 6].ToString());
+                            aux_pub.Grupo = Convert.ToInt16(cellValue_1[i, 7].ToString());
+                            switch (cellValue_1[i, 8].ToString())
+                            {
+                                case "Publicador":
+                                    {
+                                        aux_pub.Categoria = Categoria.Publicador;
+                                        break;
+                                    }
+                                case "Auxiliar":
+                                    {
+                                        aux_pub.Categoria = Categoria.Auxiliar;
+                                        break;
+                                    }
+                                case "Regular":
+                                    {
+                                        aux_pub.Categoria = Categoria.Regular;
+                                        break;
+                                    }
+                                case "Null":
+                                    {
+                                        aux_pub.Categoria = Categoria.Null;
+                                        break;
+                                    }
+                            }
+
+                            Pub_History_List.Add(aux_pub);
+                            break;
+                        }
+                        i++;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+            Compose_Charts();
+            pending_grid_refresh = true;
+        }
+
+        public void Compose_Charts()
+        {
+            Chart_Publicaciones.Series.Clear();
+            Series Serie_Publicaciones = new Series
+            {
+                ChartType = SeriesChartType.Spline,
+            };
+
+            for (int i = 0; i < Pub_History_List.Count; i++)
+            {
+                Serie_Publicaciones.Points.AddXY(Pub_History_List[i].Nombre, Pub_History_List[i].Publicaciones);
+            }
+
+            Serie_Publicaciones.BorderWidth = 2;
+            Serie_Publicaciones.MarkerStyle = MarkerStyle.Circle;
+            Serie_Publicaciones.MarkerSize = 5;
+            Chart_Publicaciones.Palette = ChartColorPalette.BrightPastel;
+            Chart_Publicaciones.Series.Add(Serie_Publicaciones);
+            Chart_Publicaciones.ChartAreas[0].AxisX.MajorGrid.Enabled = false;
+            Chart_Publicaciones.ChartAreas[0].AxisY.MajorGrid.Enabled = false;
+            Chart_Publicaciones.ResetAutoValues();
+            Chart_Publicaciones.Update();
         }
     }
 }

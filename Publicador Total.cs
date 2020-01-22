@@ -28,6 +28,48 @@ namespace JW_Secretario
             Informan = 0;
             Categoria = Main_Form.Categoria.Null;
         }
+
+        public double Prom(int switcher)
+        {
+            int value = 0;
+            switch (switcher)
+            {
+                case 1:
+                    {
+                        value = Publicaciones;
+                        break;
+                    }
+                case 2:
+                    {
+                        value = Videos;
+                        break;
+                    }
+                case 3:
+                    {
+                        value = Horas;
+                        break;
+                    }
+                case 4:
+                    {
+                        value = Revisitas;
+                        break;
+                    }
+                case 5:
+                    {
+                        value = Estudios;
+                        break;
+                    }
+            }
+            if (Informan > 0)
+            {
+                float retval = (float)value / Informan;
+                return Math.Round(retval, 2);
+            }
+            else
+            {
+                return 0;
+            }
+        }
     }
 
 }
